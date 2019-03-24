@@ -34,7 +34,7 @@ from matplotlib.colors import LogNorm
 import pywt
 
 
-DEFAULT_WAVELET = 'cmor1-1'
+DEFAULT_WAVELET = 'cmor1-1.5'
 
 def get_wavlist():
     l = []
@@ -56,29 +56,66 @@ CBAR_DEFAULTS = {
 }
 
 
-def cwts(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
+class CWT:
+    """Container for Continuous Wavelet Transform
+    Allow to plot several scaleograms with the same transform
+    """
+    def __init__(self, time, signal=None, scales=None,
+                 wavelet=DEFAULT_WAVELET):
+        # allow to build the spectrum for signal only
+        if signal is None:
+            signal = time
+            time   = np.arange(len(time))
+
+        # build a default scales array
+        if scales is None:
+            scales = np.arange(1, min(len(time)/10, 100))
+        if scales[0] <= 0:
+            raise ValueError("scales[0] must be > 0, found:"+str(scales[0]) )
+
+        # Compute CWT
+        dt = time[1]-time[0]
+        coefs, scales_freq = pywt.cwt(signal, scales, wavelet, dt)
+
+        self.signal = signal
+        self.time   = time
+        self.scales= scales
+
+        self.wavelet= wavelet
+        self.coefs  = coefs
+        self.scales_freq = scales_freq
+        self.dt     = dt
+
+
+
+def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
          spectrum='amp', coi=True, yaxis='period',
-         cscale='linear', cmap=plt.cm.jet, clim=None,
+         cscale='linear', cmap='jet', clim=None,
          cbar='vertical', cbarlabel=None,
          cbarkw=None,
          xlim=None, ylim=None, yscale=None,
          xlabel=None, ylabel=None, title=None,
          figsize=None, ax=None):
 
-    # allow to build the spectrum for signal only
-    if signal is None:
-        signal = time
-        time   = np.arange(len(time))
+    if isinstance(time, CWT):
+        c = time
+        time, signal, scales, dt  = c.time, c.signal, c.scales, c.dt
+        coefs, scales_freq        = c.coefs, c.scales_freq
+    else:
+        # allow to build the spectrum for signal only
+        if signal is None:
+            signal = time
+            time   = np.arange(len(time))
 
-    # build a default scales array
-    if scales is None:
-        scales = np.arange(1, min(len(time)/10, 100))
-    if scales[0] <= 0:
-        raise ValueError("scales[0] must be > 0, found:"+str(scales[0]) )
+        # build a default scales array
+        if scales is None:
+            scales = np.arange(1, min(len(time)/10, 100))
+        if scales[0] <= 0:
+            raise ValueError("scales[0] must be > 0, found:"+str(scales[0]) )
 
-    # wavelet transform
-    dt = time[1]-time[0]
-    coefs, scales_freq = pywt.cwt(signal, scales, wavelet, dt)
+        # wavelet transform
+        dt = time[1]-time[0]
+        coefs, scales_freq = pywt.cwt(signal, scales, wavelet, dt)
 
     # create plot area or use the one provided
     if ax is None:
@@ -172,7 +209,7 @@ def cwts(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
     if coi:
         # convert the wavelet scales frequency into time domain periodicity
         scales_coi = scales_period
-        max_coi    = scales_coi[-1]
+        max_coi  = scales_coi[-1]
 
         # produce the line and the curve delimiting the COI masked area
         mid = int(len(time)/2)
@@ -180,22 +217,26 @@ def cwts(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
         ymask = np.zeros(len(time), dtype=np.float16)
         ymhalf= ymask[0:mid+1]  # compute the left part of the mask
         ws    = np.argsort(scales_period) # ensure np.interp() works
-        maxscale = max(ax.get_ylim())
+        minscale, maxscale = sorted(ax.get_ylim())
         if yaxis == 'period':
             ymhalf[:] = np.interp(time0,
                   scales_period[ws], scales_coi[ws])
+            yborder = np.zeros(len(time)) + maxscale
+            ymhalf[time0 > max_coi]   = maxscale
         elif yaxis == 'frequency':
             ymhalf[:] = np.interp(time0,
                   scales_period[ws], 1./scales_coi[ws])
+            yborder = np.zeros(len(time)) + minscale
+            ymhalf[time0 > max_coi]   = minscale
         elif yaxis == 'scale':
             ymhalf[:] = np.interp(time0, scales_coi, scales)
+            yborder = np.zeros(len(time)) + maxscale
+            ymhalf[time0 > max_coi]   = maxscale
         else:
             raise ValueError("yaxis="+str(yaxis))
 
         # complete the right part of the mask by symmetry
-        ymhalf[time0 > max_coi]   = maxscale
         ymask[-mid:] = ymhalf[0:mid][::-1]
-        yborder = np.zeros(len(time)) + maxscale
 
         plt.plot(time, ymask)
         ax.fill_between(time, yborder, ymask, alpha=0.5, hatch='/')
@@ -203,25 +244,25 @@ def cwts(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
     # color bar stuff
     if cbar:
         cbarkw   = CBAR_DEFAULTS[cbar] if cbarkw is None else cbarkw
-        colorbar = plt.colorbar(qmesh, orientation=cbar, **cbarkw)
+        colorbar = plt.colorbar(qmesh, orientation=cbar, ax=ax, **cbarkw)
         if cbarlabel:
             colorbar.set_label(cbarlabel)
 
     return ax
 
 
-cwts.__doc__ = """
+cws.__doc__ = """
 Build and displays the 2D spectrum for Continuous Wavelet Transform
 
 Call signatures::
 
     # build the CWT and displays the scaleogram
-    ax = cwts(signal)
-    ax = cwts(time, signal)
+    ax = cws(signal)
+    ax = cws(time, signal)
 
     # use a previously computed Continuous Wavelet Transform
     cwt = CWT(time, signal)
-    ax  = cwts(CWT)
+    ax  = cws(CWT)
 
 
 Arguments
@@ -391,31 +432,93 @@ Continuous Wavelet list
 - """+("\n- ".join(WAVLIST))
 
 
-if __name__ == '__main__':
+
+def test_cws():
+    """Graphical output test function
+    """
     print("Multi-purpose test demo (needs graphic output for matplotlib)")
 
     print("  Plot Mexican Hat wavelet in time and frequency domains")
-#    plot_wav(DEFAULT_WAVELET)
+    plot_wav(DEFAULT_WAVELET)
 
     print("  Plot scaleogram of a gaussian")
     time = np.arange(1024)-512
-    signal = np.exp(-np.power(time/4, 2.)/2.)
     signal = np.cos(2*np.pi/52*time)
-    f = plt.figure()
-#    plt.plot(time, signal)
-#    plt.title("Gaussian function, mu=0, sigma=4")
+    fig = plt.figure()
+    plt.plot(time, signal)
+    plt.title("Input signal: cos($2*\pi/52*t$)")
 
-#    cwts(signal) # KISS
+#    cws(signal) # KISS
 
-    ax = cwts(time, signal, scales=np.arange(1,100, 2), wavelet=DEFAULT_WAVELET,
-         #yaxis='frequency',
-         #yaxis='period',
-         yaxis='scale',
-         spectrum='power', coi=1,
-         title="scaleogram (Power) of a gaussian with $\mu=0$, $\sigma=4$",
-         xlabel="sample index",
-         #ylim=(40, 20),
-         )
+    scales = np.arange(1, 200, 2)
+    cwt = CWT(time, signal, scales, 'cmor1-1.5')
+    ax = cws(cwt,
+              wavelet=DEFAULT_WAVELET,
+              #yaxis='frequency',
+              yaxis='period',
+              #yaxis='scale',
+              spectrum='power', coi=1,
+              title="scaleogram of cos($2*\pi/52*t$): expect an horizontal bar",
+              xlabel="sample index",
+              #ylim=(40, 20),
+              )
     plt.tight_layout()
-    #plt.plot(0, 52, 'wo', mew=10)
+    ax.annotate('cos($2*\pi/52*t$)', xy=(0, 52), xytext=(-100, 40),
+                color="white", fontsize=15,
+                arrowprops=dict(facecolor='white', shrink=0.05))
+    ax.annotate('Cone Of Influence', xy=(-512+100, 100), xytext=(-300, 90),
+                color="white", fontsize=15,
+                arrowprops=dict(facecolor='white', shrink=0.05))
+    plt.draw()
+
+    print("  Plot test grid")
+    fig = plt.figure()
+    nrow, ncol = 3, 3
+
+    ax = plt.subplot(nrow, ncol, 1)
+    ax = cws(cwt, ax=ax, cbar='vertical', cmap='Reds',
+             title="cbar='vertical'")
+
+    ax = plt.subplot(nrow, ncol, 2)
+    ax = cws(cwt, ax=ax, cbar='horizontal', cmap="Reds",
+             title="cbar='horizontal'", xlabel="")
+    ax.set_xticks([])
+
+    ax = plt.subplot(nrow, ncol, 3)
+    ax = cws(cwt, ax=ax, cbar='horizontal', cmap='Reds', cscale='log',
+             title="cscale='log'", xlabel="")
+    ax.set_xticks([])
+
+    ax = plt.subplot(nrow, ncol, 4)
+    ax = cws(cwt, ax=ax, cbar=0, cmap='Greens' ,yaxis='frequency',
+             title="yaxis='freq'",  )
+
+    ax = plt.subplot(nrow, ncol, 5)
+    ax = cws(cwt, ax=ax, cbar=0,
+             title="yaxis='scale'", cmap='Greys', yaxis='scale' )
+
+    ax = plt.subplot(nrow, ncol, 6)
+    ax = cws(cwt, ax=ax, cbar=0, cmap='Reds', yscale='log',
+             title="yscale='log'", ylabel="YLABEL", xlabel="XLABEL" )
+
+    ax = plt.subplot(nrow, ncol, 7)
+    ax = cws(cwt, ax=ax, cbar=0, cmap='Reds', spectrum='power', coi=0,
+             title="spectrum='power', coi=0" )
+
+    ax = plt.subplot(nrow, ncol, 8)
+    ax = cws(cwt, ax=ax, cbar=0, cmap='Reds', spectrum='real',
+             title="spectrum='real'", xlim=(-420, -380) )
+
+    ax = plt.subplot(nrow, ncol, 9)
+    ax = cws(cwt, ax=ax, cbar=0, cmap='Reds', spectrum='imag',
+             title="spectrum='imag'", xlim=(-420, -380) )
+
+
+    plt.subplots_adjust(wspace=0.1)
+    plt.tight_layout()
+    plt.draw()
+    plt.show()
+
+if __name__ == '__main__':
+    test_cws()
 
