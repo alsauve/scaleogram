@@ -1,6 +1,10 @@
 import setuptools
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+
+with open("README.md", "r") as f:
+    long_description = f.read()
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+    
 setuptools.setup(
      name='scaleogram',  
      version='0.9',
@@ -16,5 +20,6 @@ setuptools.setup(
          "License :: OSI Approved :: MIT License",
          "Operating System :: OS Independent",
      ],
+     install_requires = requirements,
  )
 
