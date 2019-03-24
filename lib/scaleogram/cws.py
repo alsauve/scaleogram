@@ -4,26 +4,8 @@ Created on Fri Mar 22 2019
 
 @author: Alexandre Sauve
 
-
-This file provide an easy to use and portable scaleogram plot tool
-for wavelet based data analysis using Continuous Wavelet Transform (CWT).
-
-This tool has been designed with in mind:
-- Ease of use
-- Intuitive options for quality plots using matplotlib conventions
-- Portability (python2 / python3)
-- Speed : the plot is drawn with pmeshgrid which is resonably fast
-
-
-Requirements:
-    pip install PyWavelet
-    pip install matplotlib>=2.0.0
-
-
-Basic usage:
-    from scaleogram import scaleogram
-    scaleogram(numpy_array)
-
+Content : 
+    Scaleogram function for Continuous Wavelet Transform 
 """
 
 
@@ -37,6 +19,9 @@ import pywt
 DEFAULT_WAVELET = 'cmor1-1.5'
 
 def get_wavlist():
+    """Returns the list of continuous wavelet functions available in the 
+    PyWavelets library.
+    """
     l = []
     for name in pywt.wavelist(kind='continuous'):
         completion = {
@@ -57,9 +42,35 @@ CBAR_DEFAULTS = {
 
 
 class CWT:
-    """Container for Continuous Wavelet Transform
+    """Class acting as a Container for Continuous Wavelet Transform
     Allow to plot several scaleograms with the same transform
+
+    Example::
+
+    import scaleogram as scg
+    import numpy as np
+
+    time   = np.arange(200, dtype=np.float16)-100
+    data   =  np.exp(-0.5*((time)/0.2)**2)  # insert a gaussian at the center
+    scales = np.arange(1,101) # scaleogram with 100 rows
+
+    # compute ONCE the Continuous Wavelet Transform
+    cwt    = scg.CWT(time, data, scales)
+
+    # plot 1 with full range
+    scg.cws(cwt) 
+
+    # plot 2 with a zoom
+    scg.cws(cwt, xlim=(-50, 50), ylim=(20, 1))
+
+    Parameters
+    ---------
+
+    The __init__() method accept the same values and call signatures as for 
+    cws() function (see docstring)
+        
     """
+
     def __init__(self, time, signal=None, scales=None,
                  wavelet=DEFAULT_WAVELET):
         # allow to build the spectrum for signal only
@@ -373,7 +384,7 @@ Continuous Wavelet list
 
 
 
-def plot_wav(wav, figsize=None, axes=None):
+def plot_wav(wav=DEFAULT_WAVELET, figsize=None, axes=None):
 
     # build wavelet time domain signal
     if isinstance(wav, str):
