@@ -15,25 +15,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import pywt
 
+from wfun import DEFAULT_WAVELET, WAVLIST
 
-DEFAULT_WAVELET = 'cmor1-1.5'
-
-def get_wavlist():
-    """Returns the list of continuous wavelet functions available in the 
-    PyWavelets library.
-    """
-    l = []
-    for name in pywt.wavelist(kind='continuous'):
-        completion = {
-            'cmor': 'cmor1.5-1.0',
-            'fbsp': 'fbsp1-1.5-1.0',
-            'shan': 'shan1.5-1.0' }
-        if name in completion:
-            name =  completion[name]# supress warning
-        l.append( name+" :\t"+pywt.ContinuousWavelet(name).family_name )
-    return l
-
-WAVLIST = get_wavlist()
 
 CBAR_DEFAULTS = {
     'vertical'   : { 'aspect':30, 'pad':0.03, 'fraction':0.05 },
@@ -91,6 +74,11 @@ class CWT:
         # Compute CWT
         dt = time[1]-time[0]
         coefs, scales_freq = pywt.cwt(signal, scales, wavelet, dt)
+        # Note about frequencies values:
+        #   The value returned by PyWt is 
+        #      sclales_freq = wavelet.central_frequency / scales
+        #   If the time array is not provided it is expressed in
+        #   Nb of oscillations / sample
 
         self.signal = signal
         self.time   = time
@@ -301,13 +289,20 @@ Parameters
 ----------
 
 - scales=[1..n] : an array of float or int > 0 with increasing values.
-    Important note: These scales are related to PyWavelet internal use
-    and are consistent with period of times. This is the contrary of the
-    theoretical wavelet scale parameter which is frequency related.
-    In practice the construction of the PyWavelet signal uses arrays of
-        ``n = s * 16`` values
-    to build the mother wavelet signal at scale ``s``.
-    It is supported to use custom and variable stepping for the scales.
+    The scale parameter is homogenous with the periodicity of the events
+    to be analyzed in the signal.
+    
+    Important note: This is the contrary of the theoretical wavelet scale
+    parameter which is frequency related.
+    In practice PyWavelet constructs arrays of n samples for the 
+    child wavelet at scale ``s`` with 
+    
+        ``n = s * 16``
+
+    ``scales`` can be any array of values as long as they are in
+    increasing order. Under the hood, plotting is implemented with 
+    ``pmeshgrid`` which allow to associate reliably for each pixel the
+    correct axis coordinates.
 
     Examples::
         
@@ -316,7 +311,7 @@ Parameters
         scales_log    = np.logspace(0,2)
 
 - wavelet= str | pywt.ContinuousWavelet : mother wavelet for CWT
-    The default wavelet function is Morlay (cmor1-1.5) which is a good start 
+    The default wavelet function is Morlay (``cmor1-1.5``) which is a good start 
     as a general purpose wavelet because it has a good compromise betwen 
     compacity and smoothness in both time and frequency domain.
 
@@ -348,9 +343,9 @@ Parameters
         https://fr.mathworks.com/help/wavelet/ref/conofinf.html
     
 - coikw={} : configuration of Cone Of Influence aspect
-    The hash is passed as keyword parameters to Axes.fill_between()
-    for the configuration of PolyCollection.
-    This parameter is used only when coi= is not None.
+    The hash is passed as keyword parameters to ``Axes.fill_between()``
+    for the configuration of ``PolyCollection``.
+    This parameter is used only when ``coi=`` is not None.
 
     Example for a filled pop art like mask::
         
@@ -386,7 +381,7 @@ Parameters
 - cbar= ['vertical'] | 'horizontal' : selects the color bar location
 
 - cbarkw={} --  pass a hash of parameters to the matplotlib colorbar() call
-    see: matplotlib.pyplot.colorbar documentation
+    see: ``matplotlib.pyplot.colorbar`` documentation
     
     Example::
         
@@ -395,15 +390,19 @@ Parameters
         
 
 - yaxis=<units type> : selects the Y axis units.
-    - ['period'] : Convert scales to human readable period values which depend
-        on the time input parameter.
+    - [``'period'``] : Convert scales to human readable period values.
+        The period units is the same as the ``time`` input parameter.
         If time is not provided, periods are in number of samples units.
-    - 'frequency' : Converts scales to frequency units depending on the
-        time argument value.
+    - ``'frequency'`` : Converts scales to frequency
+        The frequency unit is 1/time depending on the time argument value.
         If time is not provided, the frequency represent the number of
-        oscillations over the whole signal length.
-        In this mode ``yscale`` is set to 'log' by default (if not provided).
-    - 'scale' : display the wavelet scales parameter (in the PyWavelet sense
+        oscillations per samples. If you want the number of oscillations
+        over the whole signal duration use:: 
+            
+            time = np.asarray(len(signal)) / len(signal)
+            
+        In this mode ``yscale`` is set to ``'log'`` by default (if not provided).
+    - ``'scale'`` : display the wavelet scales parameter (in the PyWavelet sense
         as described in the Argument section) this should be used mainly for
         debug purposes as this parameter has no physical sense.
         The scale array support non constant step size.
@@ -419,154 +418,4 @@ Continuous Wavelet list
 - """+("\n- ".join(WAVLIST))
 
 
-
-
-def plot_wav(wav=DEFAULT_WAVELET, figsize=None, axes=None):
-
-    # build wavelet time domain signal
-    if isinstance(wav, str):
-        try:
-            wav = pywt.ContinuousWavelet(wav)
-        except Exception as e:
-            raise ValueError("the wav parameter mus be a continuous wavelet"+ \
-                             " (see docstring). pywt returns: "+str(e))
-    fun_wav, time = wav.wavefun(level=8)
-
-    if axes is None:
-        fig, (ax1, ax2)= plt.subplots(1, 2, figsize=figsize)
-    else:
-        ax1, ax2 = axes
-
-    ax1.plot(fun_wav.real, label="real")
-    ax1.plot(fun_wav.imag, "r-", label="imag")
-    ax1.legend()
-    ax1.set_title(wav.family_name)
-    ax1.set_xlabel('Sample index')
-    ax1.set_ylabel("Amplitude")
-    ax2.plot(np.abs(np.fft.fft(fun_wav)))
-    ax2.set_yscale('log')
-    ax2.set_xlim(0, len(fun_wav)/2)
-    ax2.set_title("Frequency support")
-    ax2.set_xlabel("Frequency [Nb of oscillations/window]")
-
-    return ax1, ax2
-
-
-
-plot_wav.__doc__ =     """
-Quick helper function to check visually the properties of a wavelet
-in time domain and the filter view in frequency domain.
-
-
-Parameters
-----------
-
-- wav : continuous wavelate name or wavelet instance as retured by pywt.
-
-- axes= (ax1, ax2) : allow to customize the plot destinations
-
-- figsize=(width,eight) : if provided then forward the size (inches)
-    to matplotlib and build a new figure for display
-    It is only used if axes is absent
-
-
-Returns
--------
-- ax1, ax2 : matplotlib graphics elements
-
-
-Continuous Wavelet list
------------------------
-- """+("\n- ".join(WAVLIST))
-
-
-
-def test_cws():
-    """Graphical output test function
-    """
-    print("Multi-purpose test demo (needs graphic output for matplotlib)")
-
-    print("  Plot Mexican Hat wavelet in time and frequency domains")
-    plot_wav(DEFAULT_WAVELET)
-
-    print("  Plot scaleogram of a gaussian")
-    time = np.arange(1024)-512
-    signal = np.cos(2*np.pi/52*time)
-    fig = plt.figure()
-    plt.plot(time, signal)
-    plt.title("Input signal: cos($2*\pi/52*t$)")
-
-#    cws(signal) # KISS
-
-    scales = np.arange(1, 200, 2)
-    cwt = CWT(time, signal, scales, 'cmor1-1.5')
-    ax = cws(cwt,
-              wavelet=DEFAULT_WAVELET,
-              #yaxis='frequency',
-              yaxis='period',
-              #yaxis='scale',
-              spectrum='power',
-              title="scaleogram of cos($2*\pi/52*t$): expect an horizontal bar",
-              xlabel="sample index",
-              #ylim=(40, 20),
-              )
-    plt.tight_layout()
-    ax.annotate('cos($2*\pi/52*t$)', xy=(0, 52), xytext=(-100, 40),
-                color="white", fontsize=15,
-                arrowprops=dict(facecolor='white', shrink=0.05))
-    ax.annotate('Cone Of Influence', xy=(-512+100, 100), xytext=(-300, 90),
-                color="white", fontsize=15,
-                arrowprops=dict(facecolor='white', shrink=0.05))
-    plt.draw()
-
-    print("  Plot test grid")
-    fig = plt.figure()
-    nrow, ncol = 3, 3
-
-    ax = plt.subplot(nrow, ncol, 1)
-    ax = cws(cwt, ax=ax, cbar='vertical', cmap='Reds',
-             title="cbar='vertical'")
-
-    ax = plt.subplot(nrow, ncol, 2)
-    ax = cws(cwt, ax=ax, cbar='horizontal', cmap="Reds",
-             title="cbar='horizontal'", xlabel="")
-    ax.set_xticks([])
-
-    ax = plt.subplot(nrow, ncol, 3)
-    ax = cws(cwt, ax=ax, cbar='horizontal', cmap='Reds', cscale='log',
-             title="cscale='log'", xlabel="")
-    ax.set_xticks([])
-
-    ax = plt.subplot(nrow, ncol, 4)
-    ax = cws(cwt, ax=ax, cbar=0, cmap='Greens' ,yaxis='frequency',
-             title="yaxis='freq'",  )
-
-    ax = plt.subplot(nrow, ncol, 5)
-    ax = cws(cwt, ax=ax, cbar=0,
-             title="yaxis='scale'", cmap='Greys', yaxis='scale' )
-
-    ax = plt.subplot(nrow, ncol, 6)
-    ax = cws(cwt, ax=ax, cbar=0, cmap='Reds', yscale='log',
-             title="yscale='log'", ylabel="YLABEL", xlabel="XLABEL" )
-
-    ax = plt.subplot(nrow, ncol, 7)
-    ax = cws(cwt, ax=ax, cbar=0, cmap='Reds', spectrum='power', coi=0,
-             title="spectrum='power', coi=0" )
-
-    ax = plt.subplot(nrow, ncol, 8)
-    ax = cws(cwt, ax=ax, cbar=0, cmap='Reds', spectrum='real',
-             title="spectrum='real'", xlim=(-420, -380) )
-
-    ax = plt.subplot(nrow, ncol, 9)
-    ax = cws(cwt, ax=ax, cbar=0, cmap='Reds', spectrum='imag',
-             title="spectrum='imag'", xlim=(-420, -380) )
-
-
-    plt.subplots_adjust(wspace=0.1)
-    plt.tight_layout()
-    plt.draw()
-    plt.show()
-
-if __name__ == '__main__':
-    test_cws()
 

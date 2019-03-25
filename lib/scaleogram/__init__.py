@@ -32,10 +32,10 @@ Basic usage::
 """
 
 from __future__ import absolute_import
-from .cws import  cws, plot_wav, test_cws, CWT
+from .cws  import  cws, plot_wav, test_cws, CWT
+from .wfun import  child_wav, child_wav_temp, child_wav_freq
 from pkg_resources import get_distribution, DistributionNotFound
 import os.path
-
 
 
 try:
@@ -51,6 +51,7 @@ except DistributionNotFound:
 else:
     __version__ = _dist.version
 
-__all__ = [ cws, plot_wav, test_cws, CWT ]
+__all__ = [ cws, plot_wav, test_cws, CWT, 
+           child_wav, child_wav_temp, child_wav_freq ]
 
 
