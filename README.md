@@ -1,14 +1,17 @@
 # scaleogram
 
-Scaleogram is an easy to go plot tool for data analysis with Continuous Wavelet Transform.
+Scaleogram is a user friendly plot tool for data analysis with 
+Continuous Wavelet Transform.
 
 It has the following features:
 * simple call signature for complete beginners
 * readable axes and clean matplotlib integration
+* support for periodicity and frequency units
 * speed
 * portability: tested with python2.7 and python3.7
-* comprehensive error message and documentation
+* comprehensive error message and documentation with examples
 * support for Cone Of Influence mask
+
 
 ## Install with pip
 
@@ -24,9 +27,6 @@ pip install scaleogram
 git clone http://github.com/alsauve/scaleogram
 cd scaleogram
 python ./setup.py install --user
-
-# test with
-python -Mscaleogram
 ```
 
 ### Prerequisites
@@ -34,7 +34,7 @@ python -Mscaleogram
 This module depends on
 * PyWavelet >= 0.9
 * matplotlib >= 2.0
-* numpy 1.x
+* numpy >= 1.0
 
 
 ## Running the tests
@@ -42,8 +42,8 @@ This module depends on
 A features test matrix can be plotted with
 
 ```
-from scaleogram import test
-test()
+# launch graphical tests
+python -m scaleogram.test
 ```
 
 ## Built With

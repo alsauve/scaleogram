@@ -10,13 +10,18 @@ Content :
 
 
 from __future__ import print_function
+from __future__ import absolute_import
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import pywt
 
-from wfun import DEFAULT_WAVELET, WAVLIST
-
+try:
+    from wfun import DEFAULT_WAVELET, WAVLIST
+except ImportError:
+    # support import from egg
+    from .wfun import DEFAULT_WAVELET, WAVLIST
+    
 
 CBAR_DEFAULTS = {
     'vertical'   : { 'aspect':30, 'pad':0.03, 'fraction':0.05 },

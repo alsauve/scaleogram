@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Created on Fri Mar 22 2019
 
@@ -190,3 +191,6 @@ Continuous Wavelet list
 
 if __name__ == '__main__':
     plot_wav()
+    plt.draw()
+    plt.show()
+    
