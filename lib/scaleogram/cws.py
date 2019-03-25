@@ -221,25 +221,25 @@ def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
         max_coi  = scales_coi[-1]
 
         # produce the line and the curve delimiting the COI masked area
-        mid = int(len(time)/2)
-        time0 = np.abs(time[0:mid+1]-time[0])
-        ymask = np.zeros(len(time), dtype=np.float16)
+        mid = int(len(xmesh)/2)
+        time0 = np.abs(xmesh[0:mid+1]-xmesh[0])
+        ymask = np.zeros(len(xmesh), dtype=np.float16)
         ymhalf= ymask[0:mid+1]  # compute the left part of the mask
         ws    = np.argsort(scales_period) # ensure np.interp() works
         minscale, maxscale = sorted(ax.get_ylim())
         if yaxis == 'period':
             ymhalf[:] = np.interp(time0,
                   scales_period[ws], scales_coi[ws])
-            yborder = np.zeros(len(time)) + maxscale
+            yborder = np.zeros(len(xmesh)) + maxscale
             ymhalf[time0 > max_coi]   = maxscale
         elif yaxis == 'frequency':
             ymhalf[:] = np.interp(time0,
                   scales_period[ws], 1./scales_coi[ws])
-            yborder = np.zeros(len(time)) + minscale
+            yborder = np.zeros(len(xmesh)) + minscale
             ymhalf[time0 > max_coi]   = minscale
         elif yaxis == 'scale':
             ymhalf[:] = np.interp(time0, scales_coi, scales)
-            yborder = np.zeros(len(time)) + maxscale
+            yborder = np.zeros(len(xmesh)) + maxscale
             ymhalf[time0 > max_coi]   = maxscale
         else:
             raise ValueError("yaxis="+str(yaxis))
@@ -248,9 +248,9 @@ def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
         ymask[-mid:] = ymhalf[0:mid][::-1]
 
         # plot the mask and forward user parameters
-        plt.plot(time, ymask)
+        plt.plot(xmesh, ymask)
         coikw = COI_DEFAULTS if coikw is None else coikw
-        ax.fill_between(time, yborder, ymask, **coikw )
+        ax.fill_between(xmesh, yborder, ymask, **coikw )
 
     # color bar stuff
     if cbar:
@@ -421,6 +421,5 @@ Returns
 Continuous Wavelet list
 -----------------------
 - """+("\n- ".join(WAVLIST))
-
 
 
