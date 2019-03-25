@@ -1,35 +1,40 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from .cws import  cws, plot_wav, test_cws, CWT
-from pkg_resources import get_distribution, DistributionNotFound
-import os.path
-
 """
 Created on Fri Mar 22 2019
 
 @author: Alexandre Sauve
 
 
-This module provide a user friendly scaleogram plot tool for 
+This module provide a user friendly *scaleogram* plot tool for 
 wavelet based data analysis using Continuous Wavelet Transform (CWT).
+A scaleogram is the equivalent of a spectrogram for wavelets, but it has
+a better compromise between time and frequency domain.
 
 The module has been designed with in mind:
+    
 - Ease of use
 - Intuitive options for quality plots using matplotlib conventions
 - Portability (python2 / python3)
 - Speed : the plot is drawn with pmeshgrid which is resonably fast
 
 Requirements::
+    
     pip install PyWavelet
     pip install matplotlib>=2.0.0
 
 
 Basic usage::
+    
     import scaleogram as scg
     scg.cws(numpy_array)
 
 
 """
+
+from __future__ import absolute_import
+from .cws import  cws, plot_wav, test_cws, CWT
+from pkg_resources import get_distribution, DistributionNotFound
+import os.path
 
 
 

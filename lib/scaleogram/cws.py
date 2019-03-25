@@ -40,6 +40,10 @@ CBAR_DEFAULTS = {
     'horizontal' : { 'aspect':40, 'pad':0.12, 'fraction':0.05 }
 }
 
+COI_DEFAULTS = { 
+        'alpha':'0.5',
+        'hatch':'/',
+}
 
 class CWT:
     """Class acting as a Container for Continuous Wavelet Transform
@@ -100,7 +104,8 @@ class CWT:
 
 
 def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
-         spectrum='amp', coi=True, yaxis='period',
+         spectrum='amp', coi=True, coikw=None,
+         yaxis='period',
          cscale='linear', cmap='jet', clim=None,
          cbar='vertical', cbarlabel=None,
          cbarkw=None,
@@ -249,8 +254,10 @@ def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
         # complete the right part of the mask by symmetry
         ymask[-mid:] = ymhalf[0:mid][::-1]
 
+        # plot the mask and forward user parameters
         plt.plot(time, ymask)
-        ax.fill_between(time, yborder, ymask, alpha=0.5, hatch='/')
+        coikw = COI_DEFAULTS if coikw is None else coikw
+        ax.fill_between(time, yborder, ymask, **coikw )
 
     # color bar stuff
     if cbar:
@@ -293,20 +300,27 @@ Arguments
 Parameters
 ----------
 
-- scales=[1..n] : an array of increasing values > 0.
+- scales=[1..n] : an array of float or int > 0 with increasing values.
     Important note: These scales are related to PyWavelet internal use
     and are consistent with period of times. This is the contrary of the
     theoretical wavelet scale parameter which is frequency related.
     In practice the construction of the PyWavelet signal uses arrays of
         ``n = s * 16`` values
     to build the mother wavelet signal at scale ``s``.
+    It is supported to use custom and variable stepping for the scales.
 
-    Example::
-
-        scales=np.arange(1,200, 2)
+    Examples::
+        
+        import numpy as np
+        scales_linear = np.arange(1,200, 2)
+        scales_log    = np.logspace(0,2)
 
 - wavelet= str | pywt.ContinuousWavelet : mother wavelet for CWT
-    Note: for the continuous transform, there is no scaling function
+    The default wavelet function is Morlay (cmor1-1.5) which is a good start 
+    as a general purpose wavelet because it has a good compromise betwen 
+    compacity and smoothness in both time and frequency domain.
+
+    Note : for the continuous transform, there is no scaling function
     by contrast with the discrete transform.
 
     Example::
@@ -320,15 +334,31 @@ Parameters
     - 'power' for abs(CWT)**2
     - "lambda(np.array): np.array" to apply a custom processing on spectrum
 
-- coi= [True]/False : nable/disable masking of the Cone Of Influence (COI).
+- coi= [True] | False: enable / disable display of the Cone Of Influence.
     The COI relates to the regions near the borders of the spectrum where
     side effects occurs. At these locations the wavelet support used for the
     convolution is not fully contained by the signal data.
     The COI allow to show visually where the data cannot be fully trusted.
-    The only way to get better values at larges time scales is...
-    ...of course more data! :-)
 
+    Note: the COI displayed is much smaller than the real size of the wavelet
+    function and is computed from the bandwith at the selected scale,
+    hence some artifacts may still appear on the borders.
+
+    COI description in Matlab doc :
         https://fr.mathworks.com/help/wavelet/ref/conofinf.html
+    
+- coikw={} : configuration of Cone Of Influence aspect
+    The hash is passed as keyword parameters to Axes.fill_between()
+    for the configuration of PolyCollection.
+    This parameter is used only when coi= is not None.
+
+    Example for a filled pop art like mask::
+        
+        import scaleogram as scg
+        scg.cws(np.random.randn(1024), scales=np.arange(1, 100)/2., coi='O', 
+        coikw={'alpha':1.0, 'facecolor':'pink', 'edgecolor':'green', 
+               'hatch'='O', 'linewidth':5})
+        
 
 - ax=None|matplotlib.AxesSubplot : allow to build complex plot layouts
     If no Axes are provided subplots() is called to build the figure.
@@ -356,6 +386,13 @@ Parameters
 - cbar= ['vertical'] | 'horizontal' : selects the color bar location
 
 - cbarkw={} --  pass a hash of parameters to the matplotlib colorbar() call
+    see: matplotlib.pyplot.colorbar documentation
+    
+    Example::
+        
+        cbarkw={ 'aspect':30, 'pad':0.03, 'fraction':0.05 }
+        
+        
 
 - yaxis=<units type> : selects the Y axis units.
     - ['period'] : Convert scales to human readable period values which depend
@@ -468,7 +505,7 @@ def test_cws():
               #yaxis='frequency',
               yaxis='period',
               #yaxis='scale',
-              spectrum='power', coi=1,
+              spectrum='power',
               title="scaleogram of cos($2*\pi/52*t$): expect an horizontal bar",
               xlabel="sample index",
               #ylim=(40, 20),
