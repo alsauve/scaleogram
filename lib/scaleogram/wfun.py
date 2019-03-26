@@ -69,7 +69,7 @@ def plot_wav_time(wav=DEFAULT_WAVELET, real=True, imag=True,
     if isinstance(wav, str):
         try:
             wav = pywt.ContinuousWavelet(wav)
-        except Exception as e:
+        except ValueError as e:
             raise ValueError("the wav parameter mus be a continuous wavelet"+ \
                              " (see docstring). pywt returns: "+str(e))
     fun_wav, time = wav.wavefun()
@@ -122,7 +122,7 @@ def plot_wav_freq(wav=DEFAULT_WAVELET, figsize=None, ax=None, yscale='linear'):
     ax.set_yscale(yscale)
     ax.set_ylim(ax.get_ylim())
     ax.plot(central_frequency*np.ones(2), ax.get_ylim())
-    ax.annotate("central_freq=%0.1fHz\nbandwidth=%0.1fHz" % (
+    ax.annotate("central_freq=%0.1fHz\nbandwidth_param=%0.1f" % (
                 central_frequency, bandwidth_frequency), 
                 xy=(central_frequency, 0.5), 
                 xytext=(central_frequency+2, 0.6),

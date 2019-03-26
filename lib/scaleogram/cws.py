@@ -83,7 +83,7 @@ class CWT:
         #   The value returned by PyWt is 
         #      sclales_freq = wavelet.central_frequency / scales
         #   If the time array is not provided it is expressed in
-        #   Nb of oscillations / sample
+        #   Nb of oscillations over the whole signal array
 
         self.signal = signal
         self.time   = time
@@ -163,7 +163,7 @@ def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
     if ylim is not None:
         ax.set_ylim(*ylim)
 
-    # adjust logarithmic scales (autodetected by default)
+    # adjust logarithmic scales on request (set automatically in Frequency mode)
     if yscale is not None:
         ax.set_yscale(yscale)
 
@@ -207,7 +207,7 @@ def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
                          str(cscale))
 
     # plot the 2D spectrum using a pcolormesh to specify the correct Y axis
-    # location of scales
+    # location at each scale
     qmesh = ax.pcolormesh(xmesh, ymesh, values, cmap=cmap, norm=cnorm)
 
     if clim:
@@ -293,16 +293,18 @@ Arguments
 Parameters
 ----------
 
-- scales=[1..n] : an array of float or int > 0 with increasing values.
+- scales=np.ndarray : an array of float or int > 0 with increasing values.
     The scale parameter is homogenous with the periodicity of the events
     to be analyzed in the signal.
     
-    Important note: This is the contrary of the theoretical wavelet scale
-    parameter which is frequency related.
-    In practice PyWavelet constructs arrays of n samples for the 
-    child wavelet at scale ``s`` with 
-    
-        ``n = s * 16``
+    The relation between scale ``s`` and corresponding period length ``p`` is:
+        
+        ``p = s / C``
+        
+    where ``C`` is the central frequency parameter used to build the wavelet.  
+   
+    Example: if ``wavelet='cmor1-1.5'`` the name pattern of the wavelet is 
+    ``nameB-C``, hence ``C=1.5``  and ``period=s/1.5``.
 
     ``scales`` can be any array of values as long as they are in
     increasing order. Under the hood, plotting is implemented with 
@@ -314,6 +316,9 @@ Parameters
         import numpy as np
         scales_linear = np.arange(1,200, 2)
         scales_log    = np.logspace(0,2)
+
+    Online doc about scale:
+        https://github.com/alsauve/scaleogram/tree/master/doc/scale-to-frequency.ipynb
 
 - wavelet= str | pywt.ContinuousWavelet : mother wavelet for CWT
     The default wavelet function is Morlay (``cmor1-1.5``) which is a good start 
@@ -341,10 +346,10 @@ Parameters
     The COI allow to show visually where the data cannot be fully trusted.
 
     Note: the COI displayed is much smaller than the real size of the wavelet
-    function and is computed from the bandwith at the selected scale,
-    hence some artifacts may still appear on the borders.
+    function and is computed from the central frequency of the child wavelet 
+    at the selected scale, hence some artifacts may still appear on the borders.
 
-    COI description in Matlab doc :
+    COI description in Matlabonline doc :
         https://fr.mathworks.com/help/wavelet/ref/conofinf.html
     
 - coikw={} : configuration of Cone Of Influence aspect
@@ -364,7 +369,7 @@ Parameters
     If no Axes are provided subplots() is called to build the figure.
 
 - figsize=(width, height) : set figure size
-    This is ignored if Axes are provided through ax=
+    This is ignored if Axes are provided through ``ax=``
 
 - xlim=(min, max) : sets the display limits of X axis
 
@@ -395,22 +400,19 @@ Parameters
         
 
 - yaxis=<units type> : selects the Y axis units.
+
     - [``'period'``] : Convert scales to human readable period values.
         The period units is the same as the ``time`` input parameter.
         If time is not provided, periods are in number of samples units.
+
     - ``'frequency'`` : Converts scales to frequency
-        The frequency unit is 1/time depending on the time argument value.
-        If time is not provided, the frequency represent the number of
-        oscillations per samples. If you want the number of oscillations
-        over the whole signal duration use:: 
-            
-            time = np.asarray(len(signal)) / len(signal)
+        The frequency unit is depending on the time argument value.
+        If time is not provided, the frequency represents the number of
+        oscillations over the whole signal array. 
             
         In this mode ``yscale`` is set to ``'log'`` by default (if not provided).
-    - ``'scale'`` : display the wavelet scales parameter (in the PyWavelet sense
-        as described in the Argument section) this should be used mainly for
-        debug purposes as this parameter has no physical sense.
-        The scale array support non constant step size.
+
+    - ``'scale'`` : display the wavelet scales parameter.
 
 
 Returns
