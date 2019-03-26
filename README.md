@@ -4,6 +4,7 @@ Scaleogram is a user friendly plot tool for data analysis with
 Continuous Wavelet Transform.
 
 It has the following features:
+
 * simple call signature for complete beginners
 * readable axes and clean matplotlib integration
 * support for periodicity and frequency units
@@ -32,6 +33,7 @@ python ./setup.py install --user
 ### Prerequisites
 
 This module depends on
+
 * PyWavelet >= 0.9
 * matplotlib >= 2.0
 * numpy >= 1.0
