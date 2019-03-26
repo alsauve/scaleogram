@@ -1,17 +1,28 @@
 # scaleogram
 
-Scaleogram is a user friendly plot tool for data analysis with 
-Continuous Wavelet Transform.
+Scaleogram is a user friendly plot tool for 1D data analysis with Continuous Wavelet Transform. 
+
+I started this project when realizing how harsh it can be to build nice plots
+of wavelets scaleogram with axes ticks and labels consistent with the actual location of features.
+Hence this module aim to provide a reliable tool for either quick data analysis or publication.
 
 It has the following features:
 
 * simple call signature for complete beginners
+
 * readable axes and clean matplotlib integration
-* support for periodicity and frequency units
+
+* many options for changing scale, spectrum filter, colorbar integration, etc...
+
+* support for periodicity and frequency units, consistent with labelling
+
 * speed
+
 * portability: tested with python2.7 and python3.7
-* comprehensive error message and documentation with examples
-* support for Cone Of Influence mask
+
+* comprehensive error messages and documentation with examples
+
+* support for [Cone Of Influence]() mask
 
 
 ## Install with pip
@@ -37,6 +48,17 @@ This module depends on
 * PyWavelet >= 0.9
 * matplotlib >= 2.0
 * numpy >= 1.0
+
+## Documentation
+
+A lot of documentation and examples are available online from the docstrings
+
+Jupyter notebook are also provided for quickstarting
+
+* A gentle introduction to CWT based data analysis [TODO]
+* [scale to frequency relationship](https://github.com/alsauve/scaleogram/blob/master/doc/scale-to-frequency.ipynb)
+* [Example of scaleogram with the NINO3.4 SST seasonal time series](https://github.com/alsauve/scaleogram/blob/master/doc/El-Nino-Dataset.ipynb)
+* [Graphical output of the test set](https://github.com/alsauve/scaleogram/blob/master/doc/tests.ipynb)
 
 
 ## Running the tests
