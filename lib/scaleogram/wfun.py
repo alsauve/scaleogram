@@ -47,7 +47,6 @@ def periods2scales(periods, wavelet):
     if isinstance(wavelet, six.string_types):
         wavelet = pywt.ContinuousWavelet(wavelet)
     else:
-	print(__file__+":"+__line__+" WAVELET="+str(wavelet)+" __class__="+wavelet.__class__)
         assert(isinstance(wavelet, pywt.ContinuousWavelet))
         
     return periods * pywt.central_frequency(wavelet)
