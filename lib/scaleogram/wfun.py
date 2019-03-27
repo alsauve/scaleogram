@@ -16,7 +16,7 @@ import six
 DEFAULT_WAVELET = 'cmor1-1.5'
 
 
-def periods2scales(periods, wavelet, dt=1.0):
+def periods2scales(periods, wavelet=DEFAULT_WAVELET, dt=1.0):
     """Helper function to convert periods values (in the pseudo period 
     wavelet sense) to scales values
     
