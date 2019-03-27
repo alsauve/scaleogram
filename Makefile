@@ -12,8 +12,14 @@ upload-test:
 upload-pypi:
 	$(PYTHON) -m twine upload dist/*
 
-install-test:
-	$(PYTHON) -m pip install --user --index-url https://test.pypi.org/simple/  scaleogram
+pip-install-test:
+	PIP_IGNORE_INSTALLED=0 $(PYTHON) -m pip install --user --index-url https://test.pypi.org/simple/  scaleogram
+
+pip-install:
+	PIP_IGNORE_INSTALLED=0 $(PYTHON) -m pip install --user scaleogram
+
+pip-uninstall:
+	$(PYTHON) -m pip uninstall scaleogram
 
 
 clean:

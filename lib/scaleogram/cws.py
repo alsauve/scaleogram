@@ -297,7 +297,7 @@ Arguments
 Parameters
 ----------
 
-- scales=np.ndarray : an array of float or int > 0 with increasing values.
+- scales=np.ndarray : an array of float or int >= 1 with increasing values.
     The scale parameter is homogenous with the periodicity of the events
     to be analyzed in the signal.
     
@@ -412,7 +412,7 @@ Parameters
     - ``'frequency'`` : Converts scales to frequency
         The frequency unit is depending on the time argument value.
         If time is not provided, the frequency represents the number of
-        oscillations over the whole signal array. 
+        oscillations per sample. 
             
         In this mode ``yscale`` is set to ``'log'`` by default (if not provided).
 

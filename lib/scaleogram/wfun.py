@@ -16,7 +16,7 @@ import six
 DEFAULT_WAVELET = 'cmor1-1.5'
 
 
-def periods2scales(periods, wavelet):
+def periods2scales(periods, wavelet, dt=1.0):
     """Helper function to convert periods values (in the pseudo period 
     wavelet sense) to scales values
     
@@ -27,7 +27,15 @@ def periods2scales(periods, wavelet):
         to ``cws()``. If no ``time`` values are provided the period on the
         scaleogram will be in sample units.
         
+        Note: you should check that periods minimum value is larger than the
+        duration of two data sample because the sectrum has no physical
+        meaning bellow these values.
+        
     - wavelet : pywt.ContinuousWavelet instance or string name
+    
+    dt=[1.0] : specify the time interval between two samples of data
+        When no ``time`` array is passed to ``cws()``, there is no need to
+        set this parameter and the default value of 1 is used.
     
     Note: for a scale value of ``s`` and a wavelet Central frequency ``C``,
     the period ``p`` is::
@@ -39,17 +47,19 @@ def periods2scales(periods, wavelet):
     import numpy as np
     import scaleogram as scg
     
-    periods = np.logspace(0, 2, 100)
-    scales  = periods2scales(periods, 'cgau5')
+    periods = np.logspace(np.log10(2), np.log10(100), 100)
+    wavelet = 'cgau5'
+    scales  = periods2scales(periods, wavelet)
     data    = np.random.randn(512)  # gaussian noise
-    scg.cws( data, scales=scales, yscale='log')
+    scg.cws( data, scales=scales, wavelet=wavelet, yscale='log',
+            title="CWT of gaussian noise with constant binning in Y logscale")
     """
     if isinstance(wavelet, six.string_types):
         wavelet = pywt.ContinuousWavelet(wavelet)
     else:
         assert(isinstance(wavelet, pywt.ContinuousWavelet))
         
-    return periods * pywt.central_frequency(wavelet)
+    return (periods/dt) * pywt.central_frequency(wavelet)
     
 
 
