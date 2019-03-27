@@ -14,6 +14,44 @@ import matplotlib.pyplot as plt
 
 DEFAULT_WAVELET = 'cmor1-1.5'
 
+
+def periods2scales(periods, wavelet):
+    """Helper function to convert periods values (in the pseudo period 
+    wavelet sense) to scales values
+    
+    Arguments
+    ---------
+    - periods : np.ndarray() of positive strictly increasing values
+        The ``periods`` array should be consistent with the ``time`` array passed
+        to ``cws()``. If no ``time`` values are provided the period on the
+        scaleogram will be in sample units.
+        
+    - wavelet : pywt.ContinuousWavelet instance or string name
+    
+    Note: for a scale value of ``s`` and a wavelet Central frequency ``C``,
+    the period ``p`` is::
+    
+        p = s / C
+        
+    Example : Build a spectrum  with constant period bins in log space
+    -------
+    import numpy as np
+    import scaleogram as scg
+    
+    periods = np.logspace(0, 2, 100)
+    scales  = periods2scales(periods, 'cgau5')
+    data    = np.random.randn(512)  # gaussian noise
+    scg.cws( data, scales=scales, yscale='log')
+    """
+    if isinstance(wavelet, str):
+        wavelet = pywt.ContinuousWavelet(wavelet)
+    else:
+        assert(isinstance(wavelet, pywt.ContinuousWavelet))
+        
+    return periods * pywt.central_frequency(wavelet)
+    
+
+
 def get_wavlist():
     """Returns the list of continuous wavelet functions available in the 
     PyWavelets library.
@@ -61,7 +99,7 @@ def child_wav(wavelet, scale):
 
 
 def plot_wav_time(wav=DEFAULT_WAVELET, real=True, imag=True,
-                  figsize=None, ax=None):
+                  figsize=None, ax=None, legend=True, clearx=False):
     """Plot wavelet representation in **time domain**
     see ``plot_wav()`` for parameters.
     """
@@ -82,15 +120,22 @@ def plot_wav_time(wav=DEFAULT_WAVELET, real=True, imag=True,
         ax.plot(time, fun_wav.real, label="real")
     if imag:
         ax.plot(time, fun_wav.imag, "r-", label="imag")
-    ax.legend()
-    ax.set_title(wav.family_name)
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel("Amplitude")
+    if legend:
+        ax.legend()
+    ax.set_title(wav.name)
+    if clearx:
+        ax.set_xticks([])
+    else:
+        ax.set_xlabel('Time (s)')
+    #ax.set_ylabel("Amplitude")
+    ax.set_ylim(-1, 1)
+    
     
     return ax
     
 
-def plot_wav_freq(wav=DEFAULT_WAVELET, figsize=None, ax=None, yscale='linear'):
+def plot_wav_freq(wav=DEFAULT_WAVELET, figsize=None, ax=None, yscale='linear',
+                  annotate=True, clearx=False):
     """Plot wavelet representation in **frequency domain**
     see ``plot_wav()`` for parameters.
     """
@@ -107,32 +152,33 @@ def plot_wav_freq(wav=DEFAULT_WAVELET, figsize=None, ax=None, yscale='linear'):
     #ax2.set_yscale('log')
     ax.set_xlim(0, df*len(freq)/2)
     ax.set_title("Frequency support")
-    ax.set_xlabel("Frequency [Hz]")
+    if clearx:
+        ax.set_xticks([])
+    else:
+        ax.set_xlabel("Frequency [Hz]")
 
-    # useful annotations
+    ax.set_yscale(yscale)
+    ax.set_ylim(-0.1, 1.1)
+
     central_frequency = wav.center_frequency
     if not central_frequency:
         central_frequency = pywt.central_frequency(wav)
-    bandwidth_frequency = wav.bandwidth_frequency
-    #if not bandwidth_frequency:
-    #    # The wavlet does not provide the value, let's infer it!
-    #    # bandwith defined here from the half of the peak value
-    #    w = np.where(fft[0:int(len(fft)/2)]/fft.max() >= 0.5)
-    #    bandwidth_frequency = 2* (freq[w].max()-freq[w].min())
-    ax.set_yscale(yscale)
-    ax.set_ylim(ax.get_ylim())
+    bandwidth_frequency = wav.bandwidth_frequency if wav.bandwidth_frequency else 0
     ax.plot(central_frequency*np.ones(2), ax.get_ylim())
-    ax.annotate("central_freq=%0.1fHz\nbandwidth_param=%0.1f" % (
-                central_frequency, bandwidth_frequency), 
-                xy=(central_frequency, 0.5), 
-                xytext=(central_frequency+2, 0.6),
-                arrowprops=dict(facecolor='black', shrink=0.01))
+
+    if annotate:
+        ax.annotate("central_freq=%0.1fHz\nbandwidth_param=%0.1f" % (
+                    central_frequency, bandwidth_frequency), 
+                    xy=(central_frequency, 0.5), 
+                    xytext=(central_frequency+2, 0.6),
+                    arrowprops=dict(facecolor='black', shrink=0.01))
 
     return ax
 
 
 def plot_wav(wav=DEFAULT_WAVELET, figsize=None, axes=None, 
-             real=True, imag=True, yscale='linear'):
+             real=True, imag=True, yscale='linear', 
+             legend=True, annotate=True, clearx=False):
 
     # build wavelet time domain signal
     if isinstance(wav, str):
@@ -148,8 +194,8 @@ def plot_wav(wav=DEFAULT_WAVELET, figsize=None, axes=None,
     else:
         ax1, ax2 = axes
     
-    plot_wav_time(wav, real=real, imag=imag, ax=ax1)
-    plot_wav_freq(wav, yscale=yscale, ax=ax2)
+    plot_wav_time(wav, real=real, imag=imag, ax=ax1, legend=legend, clearx=clearx)
+    plot_wav_freq(wav, yscale=yscale, ax=ax2, annotate=annotate, clearx=clearx)
 
     return ax1, ax2
 
@@ -189,8 +235,33 @@ Continuous Wavelet list
 
 
 
+
+
+def plot_wavelets(wavlist=None, figsize=None):
+    """Plot the matrix of all available continuous wavelets
+    """
+  
+    wavlist = WAVLIST if wavlist is None else wavlist
+    names = [ desc.split()[0] for desc in wavlist ]
+    ncol = 4
+    nrow = int(np.ceil(len(names)/2))
+    figsize = (12, 1.5*nrow) if figsize is None else figsize
+    fig, axes = plt.subplots(nrow, ncol, figsize=figsize)
+    plt.subplots_adjust( hspace=0.5, wspace=0.25 )
+    axes = [ item for sublist in axes for item in sublist ] # flatten list
+    
+    for i in range(int(len(names))):
+        plot_wav(names[i], axes=(axes[i*2], axes[i*2+1]), 
+                 legend=False, annotate=False, clearx=True)
+
+
+
+
+
 if __name__ == '__main__':
     plot_wav()
+    plot_wavelets()
     plt.draw()
     plt.show()
+
     

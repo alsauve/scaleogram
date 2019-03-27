@@ -12,11 +12,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 try:
-    from wfun import plot_wav
+    from wfun import plot_wav, WAVLIST, periods2scales
     from cws  import CWT, cws, DEFAULT_WAVELET
 except ImportError:
     # egg support
-    from .wfun import plot_wav
+    from .wfun import plot_wav, WAVLIST, periods2scales
     from .cws  import CWT, cws, DEFAULT_WAVELET
     
     
@@ -107,8 +107,18 @@ def test_cws():
     plt.show()
 
 
+def test_helpers():
+    print("Testing helper functions")
+    
+    print("  testing periods2scales()")
+    periods = np.arange(1,4)
+    for wavelet in [ desc.split()[0] for desc in WAVLIST]:
+        scales = periods2scales(periods, wavelet)
+        assert((scales > 0).all()) # check central frequency availability
+
 
 
 if __name__ == '__main__':
+    test_helpers()
     test_cws()
 

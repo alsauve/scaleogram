@@ -81,7 +81,7 @@ class CWT:
         coefs, scales_freq = pywt.cwt(signal, scales, wavelet, dt)
         # Note about frequencies values:
         #   The value returned by PyWt is 
-        #      sclales_freq = wavelet.central_frequency / scales
+        #      scales_freq = wavelet.central_frequency / scales
         #   If the time array is not provided it is expressed in
         #   Nb of oscillations over the whole signal array
 
@@ -96,7 +96,11 @@ class CWT:
 
 
 
+
+
+
 def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
+         periods=None,
          spectrum='amp', coi=True, coikw=None,
          yaxis='period',
          cscale='linear', cmap='jet', clim=None,
