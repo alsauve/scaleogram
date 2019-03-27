@@ -12,6 +12,9 @@ upload-test:
 upload-pypi:
 	$(PYTHON) -m twine upload dist/*
 
+install-test:
+	$(PYTHON) -m pip install --user --index-url https://test.pypi.org/simple/  scaleogram
+
 
 clean:
 	rm -rf ./dist ./lib/scaleogram.egg-info
