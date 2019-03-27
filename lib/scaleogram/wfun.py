@@ -11,6 +11,7 @@ Content :
 import pywt
 import numpy as np
 import matplotlib.pyplot as plt
+import six
 
 DEFAULT_WAVELET = 'cmor1-1.5'
 
@@ -43,9 +44,10 @@ def periods2scales(periods, wavelet):
     data    = np.random.randn(512)  # gaussian noise
     scg.cws( data, scales=scales, yscale='log')
     """
-    if isinstance(wavelet, str):
+    if isinstance(wavelet, six.string_types):
         wavelet = pywt.ContinuousWavelet(wavelet)
     else:
+	print(__file__+":"+__line__+" WAVELET="+str(wavelet)+" __class__="+wavelet.__class__)
         assert(isinstance(wavelet, pywt.ContinuousWavelet))
         
     return periods * pywt.central_frequency(wavelet)
@@ -80,7 +82,7 @@ def child_wav(wavelet, scale):
     a ``pywt.ContinuousWavelet`` instance
     """
     
-    if isinstance(wavelet, str):
+    if isinstance(wavelet, six.string_types):
         wavelet = pywt.ContinuousWavelet(wavelet)
     assert isinstance(wavelet, pywt.ContinuousWavelet)
     
@@ -104,7 +106,7 @@ def plot_wav_time(wav=DEFAULT_WAVELET, real=True, imag=True,
     see ``plot_wav()`` for parameters.
     """
     # build wavelet time domain signal
-    if isinstance(wav, str):
+    if isinstance(wav, six.string_types):
         try:
             wav = pywt.ContinuousWavelet(wav)
         except ValueError as e:
@@ -181,7 +183,7 @@ def plot_wav(wav=DEFAULT_WAVELET, figsize=None, axes=None,
              legend=True, annotate=True, clearx=False):
 
     # build wavelet time domain signal
-    if isinstance(wav, str):
+    if isinstance(wav, six.string_types):
         try:
             wav = pywt.ContinuousWavelet(wav)
         except Exception as e:
@@ -244,7 +246,7 @@ def plot_wavelets(wavlist=None, figsize=None):
     wavlist = WAVLIST if wavlist is None else wavlist
     names = [ desc.split()[0] for desc in wavlist ]
     ncol = 4
-    nrow = int(np.ceil(len(names)/2))
+    nrow = int((len(names)+1)/2)
     figsize = (12, 1.5*nrow) if figsize is None else figsize
     fig, axes = plt.subplots(nrow, ncol, figsize=figsize)
     plt.subplots_adjust( hspace=0.5, wspace=0.25 )
