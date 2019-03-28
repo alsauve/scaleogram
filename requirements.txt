@@ -1,4 +1,4 @@
-PyWavelets >= 0.8
+PyWavelets >= 1.0
 matplotlib >= 2.0
 numpy >= 1.0
 

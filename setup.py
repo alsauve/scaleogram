@@ -7,7 +7,7 @@ with open('requirements.txt') as f:
     
 setuptools.setup(
      name='scaleogram',  
-     version='0.9.3',
+     version='0.9.3.2',
      author="Alexandre Sauve",
      author_email="asauve@gmail.com",
      description="User friendly scaleogram plot for Continuous Wavelet Transform",
