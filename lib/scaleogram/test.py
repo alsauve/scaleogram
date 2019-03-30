@@ -12,11 +12,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 try:
-    from wfun import plot_wav, WAVLIST, periods2scales, get_default, set_default
+    from wfun import plot_wav
     from cws  import CWT, cws, DEFAULT_WAVELET
 except ImportError:
     # egg support
-    from .wfun import plot_wav, WAVLIST, periods2scales, get_default, set_default
+    from .wfun import plot_wav
     from .cws  import CWT, cws, DEFAULT_WAVELET
 
 

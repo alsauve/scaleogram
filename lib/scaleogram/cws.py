@@ -17,10 +17,10 @@ from matplotlib.colors import LogNorm
 import pywt
 
 try:
-    from wfun import DEFAULT_WAVELET, WAVLIST
+    from wfun import DEFAULT_WAVELET, WAVLIST, fastcwt
 except ImportError:
     # support import from egg
-    from .wfun import DEFAULT_WAVELET, WAVLIST
+    from .wfun import DEFAULT_WAVELET, WAVLIST, fastcwt
     
 
 CBAR_DEFAULTS = {
@@ -32,6 +32,8 @@ COI_DEFAULTS = {
         'alpha':'0.5',
         'hatch':'/',
 }
+
+CWT_FUN = fastcwt  # replacement for pywt.cwt()
 
 class CWT:
     """Class acting as a Container for Continuous Wavelet Transform
@@ -78,7 +80,7 @@ class CWT:
 
         # Compute CWT
         dt = time[1]-time[0]
-        coefs, scales_freq = pywt.cwt(signal, scales, wavelet, dt)
+        coefs, scales_freq = CWT_FUN(signal, scales, wavelet, dt)
         # Note about frequencies values:
         #   The value returned by PyWt is 
         #      scales_freq = wavelet.central_frequency / scales
@@ -128,7 +130,7 @@ def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
 
         # wavelet transform
         dt = time[1]-time[0]
-        coefs, scales_freq = pywt.cwt(signal, scales, wavelet, dt)
+        coefs, scales_freq = CWT_FUN(signal, scales, wavelet, dt)
 
     # create plot area or use the one provided
     if ax is None:
