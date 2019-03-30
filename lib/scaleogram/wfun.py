@@ -12,7 +12,7 @@ import pywt
 import numpy as np
 import matplotlib.pyplot as plt
 import six
-
+import warnings
 
 DEFAULT_WAVELET = 'cmor1-1.5'
 
@@ -119,6 +119,125 @@ def child_wav(wavelet, scale):
     return int_psi[j.astype(np.int)]
 
 
+
+def _wavelet_adapter(wavelet):
+    """Function responsible for returning the correct pywt.ContinuousWavelet
+    """
+    if isinstance(wavelet, pywt.ContinuousWavelet):
+        return wavelet
+    if isinstance(wavelet, six.string_types):
+        return pywt.ContinuousWavelet(wavelet)
+    else:
+        raise ValueError("Expecting a string name for the wavelet,"+
+                         " or pywt.ContinuousWavelet. Got: "+str(wavelet))
+
+
+def fastcwt(signal, scales, wavelet, sampling_period=1.0):
+    """
+    Compute the continuous wavelet transform (CWT) and has the same signature
+    as ``pywt.cwt()`` but is faster for large signals length and scales.
+    
+    In practice the wavelet convolution is implemented by using the 
+    convolution theorem which states::
+        convolve(wav,sig) == ifft(fft(wav)*fft(sig))
+    
+    Zero padding is used to keep at bay circular convolution side effects.
+    
+    Parameters
+    ----------
+    signal : array to compute the CWT on
+    scales: dilatation factors for the CWT
+    wavelet: wavelet name or pywt.ContinuousWavelet
+    
+    This function is a cut'n paste of pywt.cwt() with just the convolution call
+    replaced by fft such as ``convolve(wav,sig) == ifft(fft(wav)*fft(sig))``
+    
+    The advantage of the n*log(n) complexity really shows for large signals
+    and scales > 100
+    
+    Example::
+        
+        %time (coef1, freq1) = fastcwt(np.arange(140000), np.arange(2,200), 'cmorl1-1')
+        => CPU times: user 37.8 s, sys: 791 ms, total: 38.6 s
+        => Wall time: 38.9 s
+
+        %time (coef1, freq1) = pywt.cwt(np.arange(140000), np.arange(2,200), 'cmorl1-1')
+        => CPU times: user 1min 50s, sys: 401 ms, total: 1min 51s
+        => Wall time: 1min 51s    
+    """
+    
+    # ensure the correct wavelet type
+    wavelet = _wavelet_adapter(wavelet)
+    
+    # accept array_like input; make a copy to ensure a contiguous array
+    data = np.asarray(signal)
+    if not isinstance(wavelet, (pywt.ContinuousWavelet, pywt.Wavelet)):
+        wavelet = pywt.DiscreteContinuousWavelet(wavelet)
+    if np.isscalar(scales):
+        scales = np.array([scales])
+    assert((scales > 0).all())
+    if data.ndim == 1:
+        if wavelet.complex_cwt:
+            out = np.zeros((np.size(scales), len(data)), dtype=complex)
+        else:
+            out = np.zeros((np.size(scales), len(data)))
+        precision = 10   # seem this value ignores the wavelet constructor...
+        int_psi, x = pywt.integrate_wavelet(wavelet, precision=precision)
+
+        # compute output size which requires
+        # - twice the size of the input array to limit circular convolution effects
+        # - additional padding to reach a power of 2 for CPU-optimal FFT
+        size_buf = 2**np.int(np.ceil(np.log2(len(signal)+
+                                             max(len(signal), len(int_psi)-1))))
+
+        # put input signal into a 2^K length buffer
+        buf_data = np.zeros(size_buf, data.dtype)
+        buf_data[0:len(data)] = data # zero padding
+        buf_wav = np.zeros(size_buf, dtype=out.dtype)    # same size for FFT
+        fft_data = np.fft.fft(buf_data)
+        #del(buf_data)
+
+        for i in np.arange(np.size(scales)):
+            step = x[1] - x[0]
+            j = np.floor(
+                np.arange(scales[i] * (x[-1] - x[0]) + 1) / (scales[i] * step))
+            if np.max(j) >= np.size(int_psi):
+                j = np.delete(j, np.where((j >= np.size(int_psi)))[0])
+            
+            # Wavelet support can grow larger than half width of buffer
+            # => The buffer must grow to prevent circular convolution!
+            if len(j) > size_buf/2: 
+                buf_data = np.concatenate([
+                        buf_data,  np.zeros(size_buf, dtype=buf_data.dtype)])
+                fft_data = np.fft.fft(buf_data)
+                buf_wav  = np.zeros(2 * size_buf, dtype=buf_wav.dtype)
+                size_buf *= 2
+                
+            buf_wav[:] = 0
+            buf_wav[0:len(j)] = int_psi[j.astype(np.int)][::-1]
+            fft_wav = np.fft.fft(buf_wav)
+            conv2 = np.fft.ifft(fft_wav*fft_data)[0:len(data)+len(j)-1]
+            coef = - np.sqrt(scales[i]) * np.diff(conv2)
+            d = (coef.size - data.size) / 2.
+            if not np.iscomplexobj(out):
+                coef = coef.real # suppress complex warning
+            if d > 0:
+                out[i, :] = coef[int(np.floor(d)):int(-np.ceil(d))]
+            elif d == 0.:
+                out[i, :] = coef.astype(out.dtype)
+            else:
+                raise ValueError(
+                    "Selected scale of {} too small.".format(scales[i]))
+        frequencies = pywt.scale2frequency(wavelet, scales, precision)
+        if np.isscalar(frequencies):
+            frequencies = np.array([frequencies])
+        for i in np.arange(len(frequencies)):
+            frequencies[i] /= sampling_period
+        return out.copy(), frequencies
+    else:
+        raise ValueError("Only dim == 1 supported")
+   
+    
 
 
 def plot_wav_time(wav=DEFAULT_WAVELET, real=True, imag=True,
@@ -281,10 +400,10 @@ def plot_wavelets(wavlist=None, figsize=None):
 
 
 
-if __name__ == '__main__':
-    plot_wav()
-    plot_wavelets()
-    plt.draw()
-    plt.show()
+#if __name__ == '__main__':
+#    plot_wav()
+#    plot_wavelets()
+#    plt.draw()
+#    plt.show()
 
 

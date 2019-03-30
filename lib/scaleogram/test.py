@@ -107,26 +107,8 @@ def test_cws():
     plt.show()
 
 
-def test_helpers():
-    print("Testing helper functions")
-
-    print("  testing periods2scales()")
-    periods = np.arange(1,4)
-    for wavelet in [ desc.split()[0] for desc in WAVLIST]:
-        scales = periods2scales(periods, wavelet)
-        assert((scales > 0).all()) # check central frequency availability
-
-    print("  testing accessors")
-    default = get_default()
-    print("  => default wavelet:", default)
-    new_default = "mexh"
-    set_default(new_default)
-    print("  => new default:", get_default())
-    assert(new_default == get_default())
-    set_default(default) # restore original value
 
 
 if __name__ == '__main__':
-    test_helpers()
     test_cws()
 
