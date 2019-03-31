@@ -22,18 +22,20 @@ except:
 class Test_wfun(unittest.TestCase):
 
     def test_fastcwt(self):
-        signal = np.zeros(100, dtype=np.float64)
-        scales = np.arange(1,150)
+        signal = np.zeros(1000, dtype=np.float64)
+        signal[1] = 1
+        scales = np.asarray([1, 10, 50, 100, 200, 400])
         for wavelet in [ l.split()[0] for l in WAVLIST]:
             coef1, freq1 = pywt.cwt(signal, scales, wavelet)
             coef2, freq2 = fastcwt( signal, scales, wavelet)
+        self.assertLess(np.std(np.abs(coef1-coef2)), 1e-12)
 
     def test_periods2scales(self):
         periods = np.arange(1,4)
         for wavelet in [ desc.split()[0] for desc in WAVLIST]:
             scales = periods2scales(periods, wavelet)
             assert((scales > 0).all()) # check central frequency availability
-    
+
     def test_accessors(self):
         default = get_default()
         new_default = "mexh"
@@ -46,5 +48,4 @@ class Test_wfun(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-    
-    
+
