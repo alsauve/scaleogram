@@ -1,6 +1,7 @@
 # scaleogram
 
-Scaleogram is a user friendly plot tool for 1D data analysis with Continuous Wavelet Transform. 
+Scaleogram is a user friendly plot tool for 1D data analysis with Continuous Wavelet Transform
+built on the [PyWavelets library](https://github.com/PyWavelets/pywt).  
 
 I started this project when realizing how harsh it can be to build nice plots
 of wavelets scaleogram with axes ticks and labels consistent with the actual location of features.
@@ -16,7 +17,7 @@ It has the following features:
 
 * support for periodicity and frequency units, consistent with labelling
 
-* speed
+* speed, uses a N*log(N) algorithm for transforms
 
 * portability: tested with python2.7 and python3.7
 
@@ -45,7 +46,7 @@ python ./setup.py install --user
 
 This module depends on
 
-* PyWavelet >= 0.9
+* PyWavelet >= 1.0
 * matplotlib >= 2.0
 * numpy >= 1.0
 
@@ -75,6 +76,12 @@ python -m scaleogram.test
 * [ViM](https://www.vim.org/) - The editor
 * [Spyder](https://www.spyder-ide.org/) - The Scientific Python Developement Environment
 * [Jupyter](https://jupyter.org/) - The Jupyter Notebook
+
+
+## Realeases
+
+See the [Releases page](releases).
+
 
 ## Contributing
 
