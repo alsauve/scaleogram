@@ -4,8 +4,8 @@ Created on Fri Mar 22 2019
 
 @author: Alexandre Sauve
 
-Content : 
-    Scaleogram function for Continuous Wavelet Transform 
+Content :
+    Scaleogram function for Continuous Wavelet Transform
 """
 
 
@@ -14,21 +14,21 @@ from __future__ import absolute_import
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-import pywt
+
 
 try:
-    from wfun import DEFAULT_WAVELET, WAVLIST, fastcwt
+    from wfun import get_default_wavelet, WAVLIST, fastcwt
 except ImportError:
     # support import from egg
-    from .wfun import DEFAULT_WAVELET, WAVLIST, fastcwt
-    
+    from .wfun import get_default_wavelet, WAVLIST, fastcwt
+
 
 CBAR_DEFAULTS = {
     'vertical'   : { 'aspect':30, 'pad':0.03, 'fraction':0.05 },
     'horizontal' : { 'aspect':40, 'pad':0.12, 'fraction':0.05 }
 }
 
-COI_DEFAULTS = { 
+COI_DEFAULTS = {
         'alpha':'0.5',
         'hatch':'/',
 }
@@ -52,7 +52,7 @@ class CWT:
     cwt    = scg.CWT(time, data, scales)
 
     # plot 1 with full range
-    scg.cws(cwt) 
+    scg.cws(cwt)
 
     # plot 2 with a zoom
     scg.cws(cwt, xlim=(-50, 50), ylim=(20, 1))
@@ -60,13 +60,12 @@ class CWT:
     Parameters
     ---------
 
-    The __init__() method accept the same values and call signatures as for 
+    The __init__() method accept the same values and call signatures as for
     cws() function (see docstring)
-        
+
     """
 
-    def __init__(self, time, signal=None, scales=None,
-                 wavelet=DEFAULT_WAVELET):
+    def __init__(self, time, signal=None, scales=None, wavelet=None):
         # allow to build the spectrum for signal only
         if signal is None:
             signal = time
@@ -78,11 +77,14 @@ class CWT:
         if scales[0] <= 0:
             raise ValueError("scales[0] must be > 0, found:"+str(scales[0]) )
 
+        if wavelet is None:
+            wavelet = get_default_wavelet()
+
         # Compute CWT
         dt = time[1]-time[0]
         coefs, scales_freq = CWT_FUN(signal, scales, wavelet, dt)
         # Note about frequencies values:
-        #   The value returned by PyWt is 
+        #   The value returned by PyWt is
         #      scales_freq = wavelet.central_frequency / scales
         #   If the time array is not provided it is expressed in
         #   Nb of oscillations over the whole signal array
@@ -101,7 +103,7 @@ class CWT:
 
 
 
-def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
+def cws(time, signal=None, scales=None, wavelet=None,
          periods=None,
          spectrum='amp', coi=True, coikw=None,
          yaxis='period',
@@ -112,6 +114,7 @@ def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
          xlabel=None, ylabel=None, title=None,
          figsize=None, ax=None):
 
+    print( "default_wavelet=", get_default_wavelet())
     if isinstance(time, CWT):
         c = time
         time, signal, scales, dt  = c.time, c.signal, c.scales, c.dt
@@ -127,6 +130,9 @@ def cws(time, signal=None, scales=None, wavelet=DEFAULT_WAVELET,
             scales = np.arange(1, min(len(time)/10, 100))
         if scales[0] <= 0:
             raise ValueError("scales[0] must be > 0, found:"+str(scales[0]) )
+
+        if wavelet is None:
+            wavelet = get_default_wavelet()
 
         # wavelet transform
         dt = time[1]-time[0]
@@ -302,23 +308,23 @@ Parameters
 - scales=np.ndarray : an array of float or int >= 1 with increasing values.
     The scale parameter is homogenous with the periodicity of the events
     to be analyzed in the signal.
-    
+
     The relation between scale ``s`` and corresponding period length ``p`` is:
-        
+
         ``p = s / C``
-        
-    where ``C`` is the central frequency parameter used to build the wavelet.  
-   
-    Example: if ``wavelet='cmor1-1.5'`` the name pattern of the wavelet is 
+
+    where ``C`` is the central frequency parameter used to build the wavelet.
+
+    Example: if ``wavelet='cmor1-1.5'`` the name pattern of the wavelet is
     ``nameB-C``, hence ``C=1.5``  and ``period=s/1.5``.
 
     ``scales`` can be any array of values as long as they are in
-    increasing order. Under the hood, plotting is implemented with 
+    increasing order. Under the hood, plotting is implemented with
     ``pmeshgrid`` which allow to associate reliably for each pixel the
     correct axis coordinates.
 
     Examples::
-        
+
         import numpy as np
         scales_linear = np.arange(1,200, 2)
         scales_log    = np.logspace(0,2)
@@ -327,8 +333,8 @@ Parameters
         https://github.com/alsauve/scaleogram/tree/master/doc/scale-to-frequency.ipynb
 
 - wavelet= str | pywt.ContinuousWavelet : mother wavelet for CWT
-    The default wavelet function is Morlay (``cmor1-1.5``) which is a good start 
-    as a general purpose wavelet because it has a good compromise betwen 
+    The default wavelet function is Morlay (``cmor1-1.5``) which is a good start
+    as a general purpose wavelet because it has a good compromise betwen
     compacity and smoothness in both time and frequency domain.
 
     Note : for the continuous transform, there is no scaling function
@@ -352,24 +358,24 @@ Parameters
     The COI allow to show visually where the data cannot be fully trusted.
 
     Note: the COI displayed is much smaller than the real size of the wavelet
-    function and is computed from the central frequency of the child wavelet 
+    function and is computed from the central frequency of the child wavelet
     at the selected scale, hence some artifacts may still appear on the borders.
 
     COI description in Matlabonline doc :
         https://fr.mathworks.com/help/wavelet/ref/conofinf.html
-    
+
 - coikw={} : configuration of Cone Of Influence aspect
     The hash is passed as keyword parameters to ``Axes.fill_between()``
     for the configuration of ``PolyCollection``.
     This parameter is used only when ``coi=`` is not None.
 
     Example for a filled pop art like mask::
-        
+
         import scaleogram as scg
-        scg.cws(np.random.randn(1024), scales=np.arange(1, 100)/2., coi='O', 
-        coikw={'alpha':1.0, 'facecolor':'pink', 'edgecolor':'green', 
+        scg.cws(np.random.randn(1024), scales=np.arange(1, 100)/2., coi='O',
+        coikw={'alpha':1.0, 'facecolor':'pink', 'edgecolor':'green',
                'hatch'='O', 'linewidth':5})
-        
+
 
 - ax=None|matplotlib.AxesSubplot : allow to build complex plot layouts
     If no Axes are provided subplots() is called to build the figure.
@@ -398,12 +404,12 @@ Parameters
 
 - cbarkw={} --  pass a hash of parameters to the matplotlib colorbar() call
     see: ``matplotlib.pyplot.colorbar`` documentation
-    
+
     Example::
-        
+
         cbarkw={ 'aspect':30, 'pad':0.03, 'fraction':0.05 }
-        
-        
+
+
 
 - yaxis=<units type> : selects the Y axis units.
 
@@ -414,8 +420,8 @@ Parameters
     - ``'frequency'`` : Converts scales to frequency
         The frequency unit is depending on the time argument value.
         If time is not provided, the frequency represents the number of
-        oscillations per sample. 
-            
+        oscillations per sample.
+
         In this mode ``yscale`` is set to ``'log'`` by default (if not provided).
 
     - ``'scale'`` : display the wavelet scales parameter.

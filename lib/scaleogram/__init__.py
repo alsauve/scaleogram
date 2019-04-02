@@ -35,8 +35,8 @@ from __future__ import absolute_import
 from .cws  import  cws, CWT
 from .test import  test_cws
 from .wfun import  child_wav, plot_wav_time, plot_wav_freq, plot_wav, \
-                    periods2scales, plot_wavelets, get_default, set_default, \
-                    fastcwt
+                    periods2scales, plot_wavelets, get_default_wavelet, \
+                    set_default_wavelet, fastcwt
 from pkg_resources import get_distribution, DistributionNotFound
 import os.path
 
