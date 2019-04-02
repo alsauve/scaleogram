@@ -114,7 +114,6 @@ def cws(time, signal=None, scales=None, wavelet=None,
          xlabel=None, ylabel=None, title=None,
          figsize=None, ax=None):
 
-    print( "default_wavelet=", get_default_wavelet())
     if isinstance(time, CWT):
         c = time
         time, signal, scales, dt  = c.time, c.signal, c.scales, c.dt
