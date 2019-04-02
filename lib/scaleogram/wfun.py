@@ -176,12 +176,13 @@ def fastcwt(signal, scales, wavelet, sampling_period=1.0):
         wavelet = pywt.DiscreteContinuousWavelet(wavelet)
     if np.isscalar(scales):
         scales = np.array([scales])
+    scales = np.asarray(scales)
     assert((scales > 0).all())
     if data.ndim == 1:
         if wavelet.complex_cwt:
             out = np.zeros((np.size(scales), len(data)), dtype=complex)
         else:
-            out = np.zeros((np.size(scales), len(data)))
+            out = np.zeros((np.size(scales), len(data)), dtype=data.dtype)
         precision  = 10 # seem this value ignores the wavelet constructor...
         int_psi, x = pywt.integrate_wavelet(wavelet, precision=precision)
         step       = x[1] - x[0]

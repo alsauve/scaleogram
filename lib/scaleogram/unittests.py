@@ -30,19 +30,26 @@ class Test_wfun(unittest.TestCase):
             coef2, freq2 = fastcwt( signal, scales, wavelet)
         self.assertLess(np.std(np.abs(coef1-coef2)), 1e-12)
 
+        # check dtype conservation
+        for check_dtype in [np.float16, np.float32, np.float64, np.float128]:
+            for scales in [ [10], [400]]:
+                sig = np.ones(1000, dtype=check_dtype)
+                c,f = fastcwt(sig, scales, 'mexh')
+                self.assertEquals(c.dtype, check_dtype)
+
     def test_periods2scales(self):
         periods = np.arange(1,4)
         for wavelet in [ desc.split()[0] for desc in WAVLIST]:
             scales = periods2scales(periods, wavelet)
-            assert((scales > 0).all()) # check central frequency availability
+            assert( (np.asarray(scales) > 0).all() ) # check central frequency availability
 
     def test_accessors(self):
         default = get_default()
         new_default = "mexh"
         set_default(new_default)
-        assert(new_default == get_default())
+        self.assertEquals(new_default, get_default())
         set_default(default) # restore original value
-        assert(default == get_default())
+        self.assertTrue(default == get_default())
 
 
 
