@@ -80,7 +80,7 @@ python -m scaleogram.test
 
 ## Realeases
 
-See the [Releases page](releases).
+See the [Releases page](https://github.com/alsauve/scaleogram/releases).
 
 
 ## Contributing

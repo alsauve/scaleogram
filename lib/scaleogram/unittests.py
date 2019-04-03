@@ -12,11 +12,11 @@ import unittest
 import numpy as np
 import pywt as pywt
 try:
-    from wfun import fastcwt, WAVLIST, get_default, set_default, \
-        periods2scales
+    from wfun import fastcwt, WAVLIST, get_default_wavelet, \
+        set_default_wavelet, periods2scales
 except:
-    from .wfun import fastcwt, WAVLIST, get_default, set_default, \
-        periods2scales
+    from .wfun import fastcwt, WAVLIST, get_default_wavelet, \
+        set_default_wavelet, periods2scales
 
 
 class Test_wfun(unittest.TestCase):
@@ -44,7 +44,7 @@ class Test_wfun(unittest.TestCase):
             assert( (np.asarray(scales) > 0).all() ) # check central frequency availability
 
     def test_accessors(self):
-        default = get_default()
+        default = get_default_wavelet()
         new_default = "mexh"
         set_default(new_default)
         self.assertEquals(new_default, get_default())

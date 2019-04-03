@@ -12,23 +12,22 @@ import pywt
 import numpy as np
 import matplotlib.pyplot as plt
 import six
-import warnings
 
 DEFAULT_WAVELET = 'cmor1-1.5'
 
 
-def set_default(wavelet):
+def set_default_wavelet(wavelet):
     """Sets the default wavelet to be used for scaleograms"""
     global DEFAULT_WAVELET
     DEFAULT_WAVELET =  wavelet
 
-def get_default():
+def get_default_wavelet():
     """Sets the default wavelet to be used for scaleograms"""
     global DEFAULT_WAVELET
     return DEFAULT_WAVELET
 
 
-def periods2scales(periods, wavelet=DEFAULT_WAVELET, dt=1.0):
+def periods2scales(periods, wavelet=None, dt=1.0):
     """Helper function to convert periods values (in the pseudo period
     wavelet sense) to scales values
 
@@ -66,6 +65,8 @@ def periods2scales(periods, wavelet=DEFAULT_WAVELET, dt=1.0):
     scg.cws( data, scales=scales, wavelet=wavelet, yscale='log',
             title="CWT of gaussian noise with constant binning in Y logscale")
     """
+    if wavelet is None:
+        wavelet = get_default_wavelet()
     if isinstance(wavelet, six.string_types):
         wavelet = pywt.ContinuousWavelet(wavelet)
     else:
@@ -103,9 +104,7 @@ def child_wav(wavelet, scale):
     a ``pywt.ContinuousWavelet`` instance
     """
 
-    if isinstance(wavelet, six.string_types):
-        wavelet = pywt.ContinuousWavelet(wavelet)
-    assert isinstance(wavelet, pywt.ContinuousWavelet)
+    wavelet = _wavelet_instance(wavelet)
 
     # the following code has been extracted from pywt.cwt() 1.0.2
     precision = 10
@@ -120,7 +119,7 @@ def child_wav(wavelet, scale):
 
 
 
-def _wavelet_adapter(wavelet):
+def _wavelet_instance(wavelet):
     """Function responsible for returning the correct pywt.ContinuousWavelet
     """
     if isinstance(wavelet, pywt.ContinuousWavelet):
@@ -168,7 +167,7 @@ def fastcwt(signal, scales, wavelet, sampling_period=1.0):
     """
 
     # ensure the correct wavelet type
-    wavelet = _wavelet_adapter(wavelet)
+    wavelet = _wavelet_instance(wavelet)
 
     # accept array_like input; make a copy to ensure a contiguous array
     data = np.asarray(signal)
@@ -251,18 +250,14 @@ def fastcwt(signal, scales, wavelet, sampling_period=1.0):
 
 
 
-def plot_wav_time(wav=DEFAULT_WAVELET, real=True, imag=True,
+def plot_wav_time(wav=None, real=True, imag=True,
                   figsize=None, ax=None, legend=True, clearx=False):
     """Plot wavelet representation in **time domain**
     see ``plot_wav()`` for parameters.
     """
-    # build wavelet time domain signal
-    if isinstance(wav, six.string_types):
-        try:
-            wav = pywt.ContinuousWavelet(wav)
-        except ValueError as e:
-            raise ValueError("the wav parameter mus be a continuous wavelet"+ \
-                             " (see docstring). pywt returns: "+str(e))
+    if wav is None:
+        wav = get_default_wavelet()
+    wav  = _wavelet_instance(wav)
     fun_wav, time = wav.wavefun()
 
     if ax is None:
@@ -287,11 +282,15 @@ def plot_wav_time(wav=DEFAULT_WAVELET, real=True, imag=True,
     return ax
 
 
-def plot_wav_freq(wav=DEFAULT_WAVELET, figsize=None, ax=None, yscale='linear',
+def plot_wav_freq(wav=None, figsize=None, ax=None, yscale='linear',
                   annotate=True, clearx=False):
     """Plot wavelet representation in **frequency domain**
     see ``plot_wav()`` for parameters.
     """
+
+    if wav is None:
+        wav = get_default_wavelet()
+    wav  = _wavelet_instance(wav)
     fun_wav, time = wav.wavefun()
 
     if ax is None:
@@ -329,18 +328,14 @@ def plot_wav_freq(wav=DEFAULT_WAVELET, figsize=None, ax=None, yscale='linear',
     return ax
 
 
-def plot_wav(wav=DEFAULT_WAVELET, figsize=None, axes=None,
+def plot_wav(wav=None, figsize=None, axes=None,
              real=True, imag=True, yscale='linear',
              legend=True, annotate=True, clearx=False):
 
-    # build wavelet time domain signal
-    if isinstance(wav, six.string_types):
-        try:
-            wav = pywt.ContinuousWavelet(wav)
-        except Exception as e:
-            raise ValueError("the wav parameter mus be a continuous wavelet"+ \
-                             " (see docstring). pywt returns: "+str(e))
-    fun_wav, time = wav.wavefun(level=8)
+    if wav is None:
+        wav = get_default_wavelet()
+    wav  = _wavelet_instance(wav)
+    fun_wav, time = wav.wavefun()
 
     if axes is None:
         fig, (ax1, ax2)= plt.subplots(1, 2, figsize=figsize)

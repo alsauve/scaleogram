@@ -13,11 +13,11 @@ import numpy as np
 
 try:
     from wfun import plot_wav
-    from cws  import CWT, cws, DEFAULT_WAVELET
+    from cws  import CWT, cws, get_default_wavelet
 except ImportError:
     # egg support
     from .wfun import plot_wav
-    from .cws  import CWT, cws, DEFAULT_WAVELET
+    from .cws  import CWT, cws, get_default_wavelet
 
 
 def test_cws():
@@ -25,8 +25,8 @@ def test_cws():
     """
     print("Multi-purpose test demo (needs graphic output for matplotlib)")
 
-    print("  Plot "+str(DEFAULT_WAVELET)+" wavelet in time and frequency domains")
-    plot_wav(DEFAULT_WAVELET)
+    print("  Plot "+str(get_default_wavelet())+" wavelet in time and frequency domains")
+    plot_wav(get_default_wavelet())
 
     print("  Plot scaleogram of a gaussian")
     time = np.arange(1024)-512
@@ -40,7 +40,7 @@ def test_cws():
     scales = np.arange(1, 200, 2)
     cwt = CWT(time, signal, scales, 'cmor1-1.5')
     ax = cws(cwt,
-              wavelet=DEFAULT_WAVELET,
+              wavelet=get_default_wavelet(),
               #yaxis='frequency',
               yaxis='period',
               #yaxis='scale',
