@@ -12,12 +12,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 try:
-    from wfun import plot_wav
-    from cws  import CWT, cws, get_default_wavelet
-except ImportError:
     # egg support
     from .wfun import plot_wav
     from .cws  import CWT, cws, get_default_wavelet
+except ImportError:
+    from wfun import plot_wav
+    from cws  import CWT, cws, get_default_wavelet
 
 
 def test_cws():

@@ -54,7 +54,11 @@ except DistributionNotFound:
 else:
     __version__ = _dist.version
 
-__all__ = [ cws, child_wav, test_cws, CWT,
-           plot_wav, plot_wav_time, plot_wav_freq ]
+__all__ = [ cws, CWT,
+            test_cws,
+            child_wav, plot_wav_time, plot_wav_freq, plot_wav, \
+            periods2scales, plot_wavelets, get_default_wavelet, \
+            set_default_wavelet, fastcwt,
+            ]
 
 

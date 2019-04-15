@@ -131,29 +131,30 @@ def _wavelet_instance(wavelet):
                          " or pywt.ContinuousWavelet. Got: "+str(wavelet))
 
 
-def fastcwt(signal, scales, wavelet, sampling_period=1.0):
+def fastcwt(data, scales, wavelet, sampling_period=1.0, method='auto'):
     """
     Compute the continuous wavelet transform (CWT) and has the same signature
     as ``pywt.cwt()`` but is faster for large signals length and scales.
 
-    In practice the wavelet convolution is implemented by using the
-    convolution theorem which states::
-        convolve(wav,sig) == ifft(fft(wav)*fft(sig))
-
-    Zero padding is used to keep at bay circular convolution side effects.
-
     Parameters
     ----------
     signal : array to compute the CWT on
+    
     scales: dilatation factors for the CWT
+    
     wavelet: wavelet name or pywt.ContinuousWavelet
 
-    This function is a cut'n paste of pywt.cwt() with just the convolution call
-    replaced by fft such as ``convolve(wav,sig) == ifft(fft(wav)*fft(sig))``
-    for scales where it is advantageous
+    method=['auto'] | 'conv' | 'fft' for selecting the convolution method
+        the `'auto'` keyword switch automatically to the best complexity at each
+        scales. While the `'fft'` and `'conv'` uses `numpy.fft` and `numpy.conv`
+        respectively.
 
-    The advantage of the n*log(n) complexity really shows for large signals
-    and scales > 100
+    In practice the `'fft'` method is implemented by using the convolution 
+    theorem which states::
+        convolve(wav,sig) == ifft(fft(wav)*fft(sig))
+
+    Zero padding is adjusted to keep at bay circular convolution side effects.
+
 
     Example::
 
@@ -166,75 +167,67 @@ def fastcwt(signal, scales, wavelet, sampling_period=1.0):
         => Wall time: 1min 51s
     """
 
-    # ensure the correct wavelet type
-    wavelet = _wavelet_instance(wavelet)
-
     # accept array_like input; make a copy to ensure a contiguous array
-    data = np.asarray(signal)
+    data = np.array(data)
     if not isinstance(wavelet, (pywt.ContinuousWavelet, pywt.Wavelet)):
         wavelet = pywt.DiscreteContinuousWavelet(wavelet)
     if np.isscalar(scales):
         scales = np.array([scales])
-    scales = np.asarray(scales)
-    assert((scales > 0).all())
+    dt_out = None  # currently keep the 1.0.2 behaviour: TODO fix in/out dtype consistency
     if data.ndim == 1:
         if wavelet.complex_cwt:
-            out = np.zeros((np.size(scales), len(data)), dtype=complex)
-        else:
-            out = np.zeros((np.size(scales), len(data)), dtype=data.dtype)
-        precision  = 10 # seem this value ignores the wavelet constructor...
+            dt_out = complex
+        out = np.zeros((np.size(scales), data.size), dtype=dt_out)
+        precision = 10
         int_psi, x = pywt.integrate_wavelet(wavelet, precision=precision)
-        step       = x[1] - x[0]
-
-        # compute output size which requires
-        # - twice the size of the input array to limit circular convolution effects
-        # - additional padding to reach a power of 2 for CPU-optimal FFT
-        size_buf = 2**np.int(np.ceil(np.log2(len(signal)+
-                                             max(len(signal), len(int_psi)-1))))
-
-        # put input signal into a 2^K length buffer
-        buf_data = np.zeros(size_buf, data.dtype)
-        buf_data[0:len(data)] = data # zero padding
-        buf_wav = np.zeros(size_buf, dtype=out.dtype) #same size for both FFT
-        fft_data = None # computed on demand
-        fft_wav  = None
+        
+        if method in ('auto', 'fft'):
+            # - to be as large as the sum of data length and and maximum wavelet
+            #   support to avoid circular convolution effects
+            # - additional padding to reach a power of 2 for CPU-optimal FFT
+            size_pad = lambda s: 2**np.int(np.ceil(np.log2(s[0] + s[1])))
+            size_scale0 = size_pad( (len(data), 
+                                     np.take(scales, 0) * ((x[-1] - x[0]) + 1)) )
+            fft_data = None
+        elif not method == 'conv':
+            raise ValueError("method must be in: 'conv', 'fft' or 'auto'")
 
         for i in np.arange(np.size(scales)):
+            step = x[1] - x[0]
             j = np.floor(
                 np.arange(scales[i] * (x[-1] - x[0]) + 1) / (scales[i] * step))
             if np.max(j) >= np.size(int_psi):
                 j = np.delete(j, np.where((j >= np.size(int_psi)))[0])
-
-            # select the fastest convolution method
-            nops_conv = len(data)*len(j)
-            nops_fft  = size_buf*np.log2(size_buf)
-            if nops_fft > nops_conv:
-                conv = np.convolve(data, int_psi[j.astype(np.int)][::-1])
+            int_psi_scale = int_psi[j.astype(np.int)][::-1]
+               
+            if method == 'conv':
+                conv = np.convolve(data, int_psi_scale)
             else:
-                # Wavelet support can grow larger than half width of buffer
-                # => The buffer must grow to prevent circular convolution!
-                while len(j) > size_buf/2:
-                    buf_data = np.concatenate([
-                            buf_data,  np.zeros(size_buf, dtype=buf_data.dtype)])
-                    fft_data = np.fft.fft(buf_data)
-                    buf_wav  = np.zeros(2 * size_buf, dtype=buf_wav.dtype)
-                    size_buf *= 2
-
-                if fft_data is None:
-                    fft_data = np.fft.fft(buf_data)
-                buf_wav[:] = 0
-                buf_wav[0:len(j)] = int_psi[j.astype(np.int)][::-1]
-                fft_wav = np.fft.fft(buf_wav)
-                conv = np.fft.ifft(fft_wav*fft_data)[0:len(data)+len(j)-1]
+                size_scale = size_pad( (len(data), len(int_psi_scale)) )
+                if size_scale != size_scale0:
+                    # the fft of data changes when padding size changes thus
+                    # it has to be recomputed
+                    fft_data = None
+                size_scale0 = size_scale
+                nops_conv = len(data) * len(int_psi_scale)
+                nops_fft  = (2+(fft_data is None)) * size_scale * np.log2(size_scale)
+                if (method == 'fft') or ((method == 'auto') and (nops_fft < nops_conv)):
+                    if fft_data is None:
+                        fft_data = np.fft.fft(data, size_scale)
+                    fft_wav = np.fft.fft(int_psi_scale, size_scale)
+                    conv = np.fft.ifft(fft_wav*fft_data)
+                    conv = conv[0:len(data)+len(int_psi_scale)-1]
+                else:
+                    conv = np.convolve(data, int_psi_scale)
+                
             coef = - np.sqrt(scales[i]) * np.diff(conv)
-
-            d = (coef.size - data.size) / 2.
             if not np.iscomplexobj(out):
-                coef = coef.real # suppress complex warning
+                coef = np.real(coef)
+            d = (coef.size - data.size) / 2.
             if d > 0:
                 out[i, :] = coef[int(np.floor(d)):int(-np.ceil(d))]
             elif d == 0.:
-                out[i, :] = coef.astype(out.dtype)
+                out[i, :] = coef
             else:
                 raise ValueError(
                     "Selected scale of {} too small.".format(scales[i]))
@@ -243,7 +236,7 @@ def fastcwt(signal, scales, wavelet, sampling_period=1.0):
             frequencies = np.array([frequencies])
         for i in np.arange(len(frequencies)):
             frequencies[i] /= sampling_period
-        return out.copy(), frequencies
+        return out, frequencies
     else:
         raise ValueError("Only dim == 1 supported")
 
