@@ -23,7 +23,9 @@ It has the following features:
 
 * comprehensive error messages and documentation with examples
 
-* support for [Cone Of Influence]() mask
+* support for Cone Of Influence mask
+
+![Example](https://github.com/alsauve/scaleogram/blob/master/doc/example.png)
 
 
 ## Install with pip
