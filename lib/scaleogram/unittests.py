@@ -47,7 +47,7 @@ class Test_wfun(unittest.TestCase):
         default = get_default_wavelet()
         new_default = "mexh"
         set_default_wavelet(new_default)
-        self.assertEquals(new_default, get_default_wavelet())
+        self.assertEqual(new_default, get_default_wavelet())
         set_default_wavelet(default) # restore original value
         self.assertTrue(default == get_default_wavelet())
 
