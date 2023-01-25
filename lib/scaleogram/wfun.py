@@ -115,7 +115,7 @@ def child_wav(wavelet, scale):
     if np.max(j) >= np.size(int_psi):
                 j = np.delete(j, np.where((j >= np.size(int_psi)))[0])
 
-    return int_psi[j.astype(np.int)]
+    return int_psi[j.astype(int)]
 
 
 
@@ -185,7 +185,7 @@ def fastcwt(data, scales, wavelet, sampling_period=1.0, method='auto'):
             # - to be as large as the sum of data length and and maximum wavelet
             #   support to avoid circular convolution effects
             # - additional padding to reach a power of 2 for CPU-optimal FFT
-            size_pad = lambda s: 2**np.int(np.ceil(np.log2(s[0] + s[1])))
+            size_pad = lambda s: 2**int(np.ceil(np.log2(s[0] + s[1])))
             size_scale0 = size_pad( (len(data), 
                                      np.take(scales, 0) * ((x[-1] - x[0]) + 1)) )
             fft_data = None
@@ -198,7 +198,7 @@ def fastcwt(data, scales, wavelet, sampling_period=1.0, method='auto'):
                 np.arange(scales[i] * (x[-1] - x[0]) + 1) / (scales[i] * step))
             if np.max(j) >= np.size(int_psi):
                 j = np.delete(j, np.where((j >= np.size(int_psi)))[0])
-            int_psi_scale = int_psi[j.astype(np.int)][::-1]
+            int_psi_scale = int_psi[j.astype(int)][::-1]
                
             if method == 'conv':
                 conv = np.convolve(data, int_psi_scale)
